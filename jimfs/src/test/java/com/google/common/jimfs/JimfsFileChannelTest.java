@@ -767,7 +767,7 @@ public class JimfsFileChannelTest {
     }
   }
 
-  private static final int BLOCKING_OP_COUNT = 10;
+  private static final int BLOCKING_OP_COUNT = 14;
 
   /**
    * Queues blocking operations on the channel in separate threads using the given executor.
@@ -865,6 +865,42 @@ public class JimfsFileChannelTest {
       public Object call() throws Exception {
         startLatch.countDown();
         channel.transferFrom(new ByteBufferChannel(buffer), 0, 10);
+        return null;
+      }
+    }));
+
+    futures.add(executor.submit( new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        startLatch.countDown();
+        channel.position();
+        return null;
+      }
+    }));
+
+    futures.add(executor.submit( new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        startLatch.countDown();
+        channel.position(0);
+        return null;
+      }
+    }));
+
+    futures.add(executor.submit( new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        startLatch.countDown();
+        channel.size();
+        return null;
+      }
+    }));
+
+    futures.add(executor.submit( new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        startLatch.countDown();
+        channel.force(true);
         return null;
       }
     }));

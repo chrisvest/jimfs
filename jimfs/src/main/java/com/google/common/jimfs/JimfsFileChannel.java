@@ -289,7 +289,26 @@ final class JimfsFileChannel extends FileChannel {
     checkOpen();
 
     synchronized (this) {
-      return position;
+      boolean completed = false;
+      long pos = 0;
+      try {
+        beginBlocking();
+        if (!isOpen()) {
+          return 0;
+        }
+        file.writeLock().lockInterruptibly();
+        try {
+          pos = position;
+          completed = true;
+        } finally {
+          file.writeLock().unlock();
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        endBlocking(completed);
+      }
+      return pos;
     }
   }
 
@@ -299,7 +318,24 @@ final class JimfsFileChannel extends FileChannel {
     checkOpen();
 
     synchronized (this) {
-      this.position = newPosition;
+      boolean completed = false;
+      try {
+        beginBlocking();
+        if (!isOpen()) {
+          return this;
+        }
+        file.writeLock().lockInterruptibly();
+        try {
+          position = newPosition;
+          completed = true;
+        } finally {
+          file.writeLock().unlock();
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        endBlocking(completed);
+      }
     }
 
     return this;
@@ -308,7 +344,29 @@ final class JimfsFileChannel extends FileChannel {
   @Override
   public long size() throws IOException {
     checkOpen();
-    return file.size();
+
+    synchronized (this) {
+      boolean completed = false;
+      long size = 0;
+      try {
+        beginBlocking();
+        if (!isOpen()) {
+          return 0;
+        }
+        file.writeLock().lockInterruptibly();
+        try {
+          size = file.size();
+          completed = true;
+        } finally {
+          file.writeLock().unlock();
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        endBlocking(completed);
+      }
+      return size;
+    }
   }
 
   @Override
@@ -352,7 +410,27 @@ final class JimfsFileChannel extends FileChannel {
   @Override
   public void force(boolean metaData) throws IOException {
     checkOpen();
-    // do nothing... writes are all synchronous anyway
+    // Basically does nothing... writes are all synchronous anyway
+    // However, pretend to be a blocking operation for the purpose of interrupt handling
+    synchronized (this) {
+      boolean completed = false;
+      try {
+        beginBlocking();
+        if (!isOpen()) {
+          return;
+        }
+        file.writeLock().lockInterruptibly();
+        try {
+          completed = true;
+        } finally {
+          file.writeLock().unlock();
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        endBlocking(completed);
+      }
+    }
   }
 
   @Override
